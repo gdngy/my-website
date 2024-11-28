@@ -1,0 +1,20 @@
+body {
+  margin: 0;
+  padding: 0;
+  overflow: hidden; /* 스크롤 방지 */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: url('../assets/images/background.png') no-repeat center center fixed;
+  background-size: cover; /* 화면을 가득 채움 */
+  height: 100vh; /* 전체 높이를 기준으로 중앙 정렬 */
+}
+
+#game-container {
+  width: 100%; /* 기본적으로 전체 화면 크기 */
+  height: 100%; /* 기본적으로 전체 화면 크기 */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #000; /* 게임 화면 주변 여백 */
+}
