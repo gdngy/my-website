@@ -1,3 +1,4 @@
+import { INITIAL_LIVES, LEVEL_1_MAX_SCORE, BUG_MISS_LIMIT, INITIAL_SPAWN_DELAY } from '../constants.js';
 import Bug from '../objects/Bug.js';
 
 export default class GamePlayScene extends Phaser.Scene {
@@ -5,16 +6,19 @@ export default class GamePlayScene extends Phaser.Scene {
         super('GamePlayScene');
     }
 
+    preload() {
+        // 파리채 이미지 로드
+        this.load.image('fly_swatter', 'assets/images/fly_swatter.png');
+    }
+
     create() {
         // 게임 상태 초기화
         this.score = 0;
         this.level = 1;
-        this.maxLevelScore = 30; // 1레벨의 최대 점수 (30점)
-        this.lives = 3;
+        this.maxLevelScore = LEVEL_1_MAX_SCORE; // 1레벨의 최대 점수
+        this.lives = INITIAL_LIVES; // 초기 생명 수
         this.missedBugs = 0; // 놓친 벌레 수
-
-        // 초기 벌레 생성 속도 (3초)
-        this.spawnDelay = 3000;
+        this.spawnDelay = INITIAL_SPAWN_DELAY; // 초기 벌레 생성 속도 (ms)
 
         // 배경 설정
         const background = this.add.image(0, 0, 'background');
@@ -28,22 +32,26 @@ export default class GamePlayScene extends Phaser.Scene {
         this.startSpawnTimer();
 
         // UI 텍스트 추가
-        this.scoreText = this.add.text(10, 10, `Score: ${this.score}`, {
+        this.levelText = this.add.text(10, 10, `Level: ${this.level}`, {
             fontSize: '24px',
-            fill: '#fff',
+            fill: '#000',
         });
-        this.levelText = this.add.text(200, 10, `Level: ${this.level}`, {
+
+        this.scoreText = this.add.text(150, 10, `Score: ${this.score}`, {
             fontSize: '24px',
-            fill: '#fff',
+            fill: '#000',
         });
-        this.livesText = this.add.text(400, 10, `Lives: ${this.lives}`, {
+
+        this.missedText = this.add.text(300, 10, `Missed: ${this.missedBugs}`, {
             fontSize: '24px',
-            fill: '#fff',
+            fill: '#000',
         });
-        this.missedText = this.add.text(600, 10, `Missed: ${this.missedBugs}`, {
+
+        this.livesText = this.add.text(this.cameras.main.width - 120, 10, `Lives: ${this.lives}`, {
             fontSize: '24px',
-            fill: '#fff',
-        });
+            fill: '#000',
+            align: 'right',
+        }).setOrigin(1, 0); // 오른쪽 정렬
 
         // 입력 이벤트
         this.input.on('pointerdown', this.handleClick, this);
@@ -116,11 +124,30 @@ export default class GamePlayScene extends Phaser.Scene {
     handleClick(pointer) {
         const bug = this.bugs.getChildren().find(b => b.getBounds().contains(pointer.x, pointer.y));
         if (bug) {
-            this.updateScore(Math.round(bug.scoreValue / 2)); // 점수의 1/3 추가
-            bug.destroy();
+            // 벌레 타격 처리
+            this.hitBug(bug);
         } else {
-            this.updateLives(-1); // 생명 감소
+            // 생명 감소
+            this.updateLives(-1);
         }
+    }
+
+    hitBug(bug) {
+        // 벌레 멈춤
+        bug.setActive(false).setVisible(false);
+
+        // 파리채 이미지 추가
+        const swatter = this.add.image(bug.x, bug.y, 'fly_swatter').setScale(0.5);
+
+        // 0.2초 후 벌레와 파리채 제거
+        this.time.addEvent({
+            delay: 200, // 0.2초
+            callback: () => {
+                swatter.destroy(); // 파리채 제거
+                bug.destroy(); // 벌레 제거
+                this.updateScore(bug.scoreValue); // 점수 업데이트
+            },
+        });
     }
 
     update() {
@@ -167,5 +194,10 @@ export default class GamePlayScene extends Phaser.Scene {
     updateMissedBugs() {
         this.missedBugs++;
         this.missedText.setText(`Missed: ${this.missedBugs}`);
+
+        // 놓친 벌레가 제한을 초과하면 게임 종료
+        if (this.missedBugs >= BUG_MISS_LIMIT) {
+            this.scene.start('GameOverScene');
+        }
     }
 }
