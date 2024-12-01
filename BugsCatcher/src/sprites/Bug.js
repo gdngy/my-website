@@ -20,17 +20,16 @@ export default class Bug extends Phaser.Physics.Arcade.Sprite {
     getDeviceScale(scene) {
         // 디바이스 해상도에 따라 크기 조정
         const screenWidth = scene.scale.width;
-        const screenHeight = scene.scale.height;
 
         if (screenWidth >= 1024) {
             // PC 해상도 (1024px 이상)
             return 1; // 기본 크기 유지
         } else if (screenWidth >= 768) {
             // 태블릿 해상도
-            return 1.2; // 크기를 조금 더 키움
+            return 1.5; // 크기를 1.5배로 키움
         } else {
             // 스마트폰 해상도
-            return 1.5; // 크기를 더 키움
+            return 2; // 크기를 2배로 키움
         }
     }
 
@@ -49,12 +48,12 @@ export default class Bug extends Phaser.Physics.Arcade.Sprite {
     }
 
     startMoving(scene, level) {
-        this.changeDirection(scene);
+        this.changeDirection(scene); // 초기 이동 방향 설정
 
         // 난이도에 따라 방향 전환 설정
         if (this.remainingTurns > 0) {
             for (let i = 1; i <= this.remainingTurns; i++) {
-                const delay = 3000 + Phaser.Math.Between(1000, 5000);
+                const delay = 3000 + Phaser.Math.Between(1000, 5000); // 3초 이후 랜덤한 시간
                 scene.time.delayedCall(delay, () => {
                     if (this.active) {
                         this.changeDirection(scene);
