@@ -1,9 +1,6 @@
 import Bug from '../sprites/Bug.js';
-import {
-    HUD_INITIAL_VALUES,
-    LEVEL_UP_SETTINGS,
-    TIMINGS
-} from '../constants.js';
+import { HUD_INITIAL_VALUES, LEVEL_UP_SETTINGS, TIMINGS, GAME_SETTINGS } from '../constants.js';
+
 
 export default class GamePlayScene extends Phaser.Scene {
     constructor() {
@@ -89,10 +86,12 @@ export default class GamePlayScene extends Phaser.Scene {
         // 벌레를 그룹에 추가
         this.bugs.add(bug);
 
-        // 벌레가 화면에 10초 동안 남아있으면 놓친 수 증가
+        // 벌레가 화면에 10초 동안 남아있으면 놓친 수 증가 및 점수 감점
         this.time.delayedCall(10000, () => {
             if (bug.active) {
-                this.missed += 1;
+                this.missed += 1; // 놓친 수 증가
+                this.score -= GAME_SETTINGS.pointLossPerMissedBug; // 상수를 사용한 감점
+                if (this.score < 0) this.score = 0; // 점수는 0 이하로 내려가지 않도록 제한
                 this.updateHUD();
                 bug.destroy();
             }
@@ -151,7 +150,7 @@ export default class GamePlayScene extends Phaser.Scene {
         this.missedText.setText(`Missed: ${this.missed}`);
         this.livesText.setText(`Lives: ${this.lives}`);
     }
-
+    
     checkLevelUp() {
         if (this.score >= this.currentLevelThreshold) {
             this.level += 1;
