@@ -1,21 +1,24 @@
 import Bug from '../sprites/Bug.js';
+import {
+    HUD_INITIAL_VALUES,
+    LEVEL_UP_SETTINGS,
+    TIMINGS
+} from '../constants.js';
 
 export default class GamePlayScene extends Phaser.Scene {
     constructor() {
         super('GamePlayScene');
-        this.initialLives = 3; // 초기 생명값
-        this.initialLevel = 1; // 초기 레벨값
-        this.initialScore = 0; // 초기 점수값
-        this.initialMissed = 0; // 초기 놓친 수
-        this.levelUpThreshold = 30; // 1레벨의 점수 기준
+        this.initialValues = HUD_INITIAL_VALUES;
+        this.levelUpSettings = LEVEL_UP_SETTINGS;
     }
 
     init() {
-        this.level = this.initialLevel;
-        this.score = this.initialScore;
-        this.lives = this.initialLives;
-        this.missed = this.initialMissed; // 놓친 수 초기화
-        this.currentLevelThreshold = this.levelUpThreshold;
+        // HUD 초기화
+        this.level = this.initialValues.level;
+        this.score = this.initialValues.score;
+        this.lives = this.initialValues.lives;
+        this.missed = this.initialValues.missed;
+        this.currentLevelThreshold = this.levelUpSettings.baseThreshold;
     }
 
     preload() {
@@ -57,7 +60,7 @@ export default class GamePlayScene extends Phaser.Scene {
         // 벌레 그룹 생성
         this.bugs = this.add.group();
 
-        // 주기적으로 벌레 생성
+        // 벌레 생성 타이머 설정
         this.updateSpawnRate();
 
         // 클릭 이벤트 통합 처리
@@ -83,32 +86,38 @@ export default class GamePlayScene extends Phaser.Scene {
 
         const bug = new Bug(this, startPosition.x, startPosition.y, bugImage, randomSize, this.level);
 
-        // 벌레 그룹에 추가
+        // 벌레를 그룹에 추가
         this.bugs.add(bug);
 
         // 벌레가 화면에 10초 동안 남아있으면 놓친 수 증가
         this.time.delayedCall(10000, () => {
-            if (!bug.isMissed && bug.active) { // 벌레가 놓치지 않았고 활성 상태일 경우
-                bug.isMissed = true; // 놓친 상태로 플래그 설정
-                this.missed += 1; // 놓친 수 증가
+            if (bug.active) {
+                this.missed += 1;
                 this.updateHUD();
-                bug.destroy(); // 벌레 제거
+                bug.destroy();
             }
         });
     }
 
+
     handleClick(pointer) {
         const clickedBug = this.bugs.getChildren().find((bug) => {
-            return bug.active && Phaser.Geom.Rectangle.Contains(bug.getBounds(), pointer.x, pointer.y);
+            const bugBounds = bug.getBounds();
+            return Phaser.Geom.Rectangle.Contains(bugBounds, pointer.x, pointer.y);
         });
 
         if (clickedBug) {
-            this.score += 10;
-            clickedBug.isMissed = true; // 클릭된 벌레는 놓친 상태가 아님
-            clickedBug.destroy();
+            // 벌레 클릭
+            const wasDestroyed = clickedBug.handleClick(); // 클릭 처리
+            if (wasDestroyed) {
+                // 클릭 횟수 충족 시 점수 증가
+                this.score += 10;
+                this.bugs.remove(clickedBug, true, true); // 그룹에서 제거
+            }
             this.updateHUD();
             this.checkLevelUp();
         } else {
+            // 벌레가 아닌 곳 클릭 시 생명 감소
             this.lives -= 1;
             this.updateHUD();
 
@@ -131,6 +140,11 @@ export default class GamePlayScene extends Phaser.Scene {
         });
     }
 
+    getSpawnRate() {
+        const baseSpawnCount = 1 + Math.floor(this.level / 10); // 레벨에 따라 벌레 생성 증가
+        return baseSpawnCount * Math.sqrt(this.level);
+    }
+
     updateHUD() {
         this.levelText.setText(`Level: ${this.level}`);
         this.scoreText.setText(`Score: ${this.score}`);
@@ -141,8 +155,9 @@ export default class GamePlayScene extends Phaser.Scene {
     checkLevelUp() {
         if (this.score >= this.currentLevelThreshold) {
             this.level += 1;
-            this.currentLevelThreshold += Math.floor(
-                this.currentLevelThreshold * Math.sqrt(this.level)
+            this.currentLevelThreshold = this.levelUpSettings.thresholdMultiplier(
+                this.currentLevelThreshold,
+                this.level
             );
 
             this.handleLevelUp();
@@ -170,23 +185,6 @@ export default class GamePlayScene extends Phaser.Scene {
             this.bugTimer.paused = false;
             this.updateSpawnRate();
         });
-    }
-
-    getSpawnRate() {
-        let baseSpawnCount = 1;
-        if (this.level >= 1 && this.level <= 10) {
-            baseSpawnCount = 1;
-        } else if (this.level >= 11 && this.level <= 25) {
-            baseSpawnCount = 5;
-        } else if (this.level >= 26 && this.level <= 50) {
-            baseSpawnCount = 10;
-        } else if (this.level >= 51 && this.level <= 100) {
-            baseSpawnCount = 20;
-        } else {
-            baseSpawnCount = 30;
-        }
-
-        return baseSpawnCount * Math.sqrt(this.level);
     }
 
     gameOver() {
