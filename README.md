@@ -10,3 +10,5 @@ https://gdngy.github.io/my-website/BugsCatcher/index.html
 https://gdngy.github.io/my-website/BallMergeBurst/index.html
 
 https://gdngy.github.io/my-website/WordFind/index.html
+
+https://gdngy.github.io/my-website/BugHunter/index.html
